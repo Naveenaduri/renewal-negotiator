@@ -3,7 +3,7 @@ import { launchMessage } from "@/lib/agent/instruction";
 import { LimitError, checkLimits } from "@/lib/limits";
 import { launchAgent } from "@/lib/omnara";
 import { supabaseAdmin, userFromRequest } from "@/lib/supabase-admin";
-import { watchRun } from "@/lib/verify";
+import { archiveOldAgents, watchRun } from "@/lib/verify";
 import { suggestedVendorEmail } from "@/lib/desk";
 
 export const maxDuration = 300;
@@ -75,5 +75,6 @@ export async function POST(req: Request) {
   }
 
   after(() => watchRun(run.id));
+  after(() => archiveOldAgents().catch(() => {}));
   return json({ runId: run.id });
 }

@@ -203,3 +203,22 @@ export async function watchRun(runId: string, maxMs = 280_000): Promise<void> {
     if (await reapIfStale(runId)) return;
   }
 }
+
+// Each run's agent keeps a pooled sandbox while it waits for objections. Release the ones from
+// runs that finished 45 minutes to 3 hours ago, so the pool never fills up (archiving is idempotent).
+// Runs still waiting on a real vendor reply are left alone.
+export async function archiveOldAgents(): Promise<void> {
+  const sb = supabaseAdmin();
+  const now = Date.now();
+  const { data: runs } = await sb
+    .from("runs")
+    .select("id")
+    .in("status", ["complete", "failed", "deal_done"])
+    .gte("created_at", new Date(now - 3 * 60 * 60 * 1000).toISOString())
+    .lte("created_at", new Date(now - 45 * 60 * 1000).toISOString())
+    .limit(50);
+  if (!runs?.length) return;
+  const { data: steps } = await sb.from("run_steps").select("text").eq("kind", "agent").in("run_id", runs.map((r) => r.id));
+  const { archiveAgent } = await import("@/lib/omnara");
+  await Promise.allSettled((steps ?? []).map((s) => archiveAgent(String(s.text).replace(/^agent:/, ""))));
+}

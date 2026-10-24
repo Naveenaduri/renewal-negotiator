@@ -83,6 +83,7 @@ tools:
   run_command: {}
 machine_sources:
   - machine_pool_name: default-pool
+    machine_memory_mb: 2048
     cwd: /workspace
     secret_env_overlay:
       CONTEXT_DEV_API_KEY: ${s.CONTEXT_DEV_API_KEY}
@@ -102,6 +103,11 @@ export async function launchAgent(name: string, message: string): Promise<string
 
 export async function sendInput(agentId: string, text: string): Promise<void> {
   await call("POST", `${base()}/agents/${agentId}/inputs`, { content_blocks: [{ type: "text", text }] });
+}
+
+// Archiving releases the agent's pooled sandbox (safe to repeat).
+export async function archiveAgent(agentId: string): Promise<void> {
+  await call("POST", `${base()}/agents/${agentId}/archive`, {});
 }
 
 export async function cancelAgent(agentId: string): Promise<void> {
