@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Link from "next/link";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,13 +15,33 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Renewal Negotiator",
-  description: "Vendor pricing research with a source URL and screenshot for every price.",
+  description:
+    "For small teams that auto-renew software they never review: forward a renewal, and two agents rehearse the negotiation with receipts.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body>{children}</body>
+      <body>
+        <header className="site-header">
+          <div className="container">
+            <Link href="/" className="brand">
+              Renewal Negotiator
+            </Link>
+            <nav className="site-nav">
+              <Link href="/pricing">Pricing</Link>
+            </nav>
+          </div>
+        </header>
+        <main>
+          <div className="container">{children}</div>
+        </main>
+      </body>
     </html>
   );
 }

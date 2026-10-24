@@ -16,15 +16,7 @@ Next.js (App Router, TypeScript) on Vercel · Supabase (auth, Postgres, realtime
 ## Status
 See SPEC.md for the full spec and build order.
 
-## Context.dev integration (research, scrape, screenshots)
-Run locally: `npm install`, then `cp .env.example .env.local` and set `CONTEXT_DEV_API_KEY`, then `npm run dev`.
+## Development
+`npm install` · `cp .env.example .env.local` (fill in keys) · `npm run dev`
 
-All Context.dev access goes through `src/lib/context-dev.ts`, which is server-only. See `AGENTS.md` for the conventions.
-
-- `POST /api/research {vendor, domain?, currentDeal?, maxEvidence?, fresh?}` runs three steps:
-  1. **Answers** (`fast`) returns plans and alternatives, each with a cited `source_url`.
-  2. **Search** finds a fallback pricing page for prices that have no cited source.
-  3. **Scrape** captures a screenshot and the relevant passages for each source page. A price is marked `verified` only when its number appears on that page.
-- `POST /api/evidence {url, query?, fresh?, fullPage?}` captures or re-captures one page as a receipt.
-
-Scripts: `npm test` (unit tests, Context.dev mocked) · `npm run typecheck` · `npm run lint` · `npm run build`
+Checks: `npm test` · `npm run typecheck` · `npm run lint` · `npm run build`. All Context.dev access goes through `src/lib/context-dev.ts` (see `AGENTS.md`).
