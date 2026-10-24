@@ -16,9 +16,9 @@ const CLAIMS = [
 ];
 
 const STEPS = [
-  { tag: "READS", color: "text-buyer", title: "Extract and research", body: "Pulls vendor, price, seats and renewal date from your email, then fetches the vendor's public pricing and two or three real alternatives." },
-  { tag: "DEBATES", color: "text-vendor", title: "Rehearse up to 3 rounds", body: "A buyer agent argues only from receipts. A labeled simulation plays the vendor rep. You can step in and be the vendor yourself." },
-  { tag: "CHECKS", color: "text-fg", title: "Verify, then draft", body: "Every price claim is checked against its saved source. You get a final email with a count of verified claims. Nothing is sent without you." },
+  { tag: "RESEARCH", color: "text-buyer", title: "Extract and research", body: "Pulls vendor, price, seats and renewal date from your email, then fetches the vendor's public pricing and two or three real alternatives." },
+  { tag: "REHEARSE", color: "text-vendor", title: "Rehearse up to 3 rounds", body: "A buyer agent argues only from receipts. A labeled simulation plays the vendor rep. You can step in and be the vendor yourself." },
+  { tag: "VERIFY", color: "text-fg", title: "Verify, then draft", body: "Every price claim is checked against its saved source. You get a final email with a count of verified claims. Nothing is sent without you." },
 ];
 
 export default function Landing() {
@@ -61,8 +61,10 @@ export default function Landing() {
             transition={{ delay: 0.9, duration: 0.7 }}
             className="max-w-[540px] text-lg leading-relaxed text-muted"
           >
-            For small teams that auto-renew software they never review: forward a renewal, and two agents rehearse the
-            negotiation with receipts.
+            For small teams that auto-renew software they never review: agents{" "}
+            <span className="font-semibold text-fg">research real public pricing and alternatives</span>, then{" "}
+            <span className="mono font-semibold tracking-wide text-vendor">REHEARSE</span> the negotiation against a
+            simulated vendor rep.
           </motion.p>
           <motion.p
             initial={{ opacity: 0, y: 16 }}
