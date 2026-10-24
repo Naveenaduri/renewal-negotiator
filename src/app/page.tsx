@@ -64,10 +64,20 @@ export default function Landing() {
             For small teams that auto-renew software they never review: forward a renewal, and two agents rehearse the
             negotiation with receipts.
           </motion.p>
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1, duration: 0.7 }}
+            className="max-w-[540px] text-lg leading-relaxed text-muted"
+          >
+            You get a <span className="font-semibold text-fg">ready-to-send counter-offer</span>, an{" "}
+            <span className="font-semibold text-buyer">estimated yearly saving</span> from verified prices, and the
+            vendor&apos;s most likely pushback with your answer ready.
+          </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.05, duration: 0.7 }}
+            transition={{ delay: 1.15, duration: 0.7 }}
             className="flex flex-wrap items-center gap-4"
           >
             <Magnetic>
