@@ -59,7 +59,7 @@ function Saving(props: { deal: Deal | null; judge: Judge | null }) {
         {props.judge?.target_basis && <div className="mono text-xs leading-relaxed text-muted">How: {props.judge.target_basis}</div>}
         {saving > 0 && (
           <div className="rounded-xl border border-line bg-ink/50 p-3 text-sm">
-            <span className="mono text-[11px] tracking-[0.1em] text-dim">GUARANTEED FALLBACK · VERIFIED PUBLISHED PRICE</span>
+            <span className="mono text-[11px] tracking-[0.1em] text-dim">PRIVATE FALLBACK · NOT IN THE EMAIL · VERIFIED PUBLISHED PRICE</span>
             <div className="mt-1 text-fg">{money(floor)}/yr, saving <span className="font-semibold text-buyer">{money(saving)}/yr</span> ({Math.round((saving / was) * 100)}%) even if they say no. You can switch to it yourself.</div>
             {basis && <div className="mono mt-1 text-xs text-muted">How: {basis}</div>}
           </div>
