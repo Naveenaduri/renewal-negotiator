@@ -1,46 +1,27 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import Link from "next/link";
+import { Bricolage_Grotesque, Instrument_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import Aurora from "@/components/Aurora";
+import Nav from "@/components/Nav";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const display = Bricolage_Grotesque({ variable: "--font-display", subsets: ["latin"], weight: ["500", "700"] });
+const body = Instrument_Sans({ variable: "--font-body", subsets: ["latin"] });
+const mono = JetBrains_Mono({ variable: "--font-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Renewal Negotiator",
   description:
     "For small teams that auto-renew software they never review: forward a renewal, and two agents rehearse the negotiation with receipts.",
 };
+export const viewport: Viewport = { themeColor: "#0c1118" };
 
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-};
-
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body>
-        <header className="site-header">
-          <div className="container">
-            <Link href="/" className="brand">
-              Renewal Negotiator
-            </Link>
-            <nav className="site-nav">
-              <Link href="/pricing">Pricing</Link>
-            </nav>
-          </div>
-        </header>
-        <main>
-          <div className="container">{children}</div>
-        </main>
+    <html lang="en" className={`${display.variable} ${body.variable} ${mono.variable} antialiased`}>
+      <body className="min-h-screen">
+        <Aurora />
+        <Nav />
+        {children}
       </body>
     </html>
   );

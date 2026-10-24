@@ -1,5 +1,14 @@
 Read SPEC.md before doing anything. Work in small steps, tell me how to test each, add no features not in the spec, never invent prices, keep keys server-side.
 
+## Context.dev (web research and receipts)
+- Env var: `CONTEXT_DEV_API_KEY` (server-side only, in `.env.local`; never import the wrapper from client code).
+- All calls go through `src/lib/contextdev.ts` (`scrapePage`, `searchWeb`), built on the `context.dev` npm SDK, which retries 408/429/5xx and honors Retry-After.
+- Endpoints used: `POST /web/scrape` (markdown + screenshot, 1 credit) https://docs.context.dev/api-reference/web-scraping/scrape ; `POST /web/search` (1 credit per 10 results) https://docs.context.dev/api-reference/web-scraping/search . `POST /web/answers` (10-100 credits) is not wired yet: https://docs.context.dev/api-reference/web-extraction/answers
+- Receipts: scrape with `maxAgeMs: 0` so every price claim is a fresh fetch.
+- Screenshots come back as a `data:image/png;base64,...` string, not a URL. Store them in Supabase Storage and save that URL in `receipts.screenshot_url`.
+- Tests must mock `src/lib/contextdev.ts`; real calls cost credits.
+- Troubleshooting: https://docs.context.dev/optimization/troubleshooting
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 ## This is NOT the Next.js you know
@@ -43,3 +52,11 @@ Docs: https://docs.omnara.com (LLM index: https://docs.omnara.com/llms.txt). API
 - **Events reach the app by webhook, not SSE.** `event_webhook` POSTs `model_output`, `tool_result` and `tool_call_update` to a Vercel route, signed with Standard Webhooks (`standardwebhooks`). Omnara waits only **5 seconds** for a response, and deliveries can arrive duplicated or out of order (dedupe by `Webhook-Id` / tool-call ID). So the route verifies the signature, returns 2xx immediately, and runs the tool in `after()` (from `next/server`, which runs within the route's `maxDuration`). The webhook writes `run_steps`, and the page watches Supabase realtime. Never hold a request open for a whole run.
 - **Approval gate:** `permission: {mode: always_ask}` on a tool pauses the call in `awaiting_permission` and opens an interaction. Resolve it with `POST .../agents/{id}/interactions/{int}/resolve {answers:[{option_indices:[0]}]}` (0 = Allow, 1 = Deny).
 - **Fallback (per SPEC):** if an Omnara run is not streaming events into the app within 60 minutes of starting the integration, switch to calling the Anthropic API directly from a server route, and tell the user.
+## Agent pipeline (end to end)
+- `POST /api/runs` (needs `Authorization: Bearer <supabase jwt>`, anonymous sessions work) creates deal + run, launches ONE Omnara agent (Claude Sonnet 5.5 via Omnara's provider, no Anthropic key) and returns `runId`. `after()` runs `watchRun`, which finalizes when the agent sets `runs.status = agent_done`.
+- The agent runs in Omnara's sandbox with secrets injected as env (`SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `CONTEXT_DEV_API_KEY`, project secrets `rn-*`). Its only interface is the `rn.py` helper (source in `src/lib/agent/instruction.ts`), which writes `run_steps`, `messages`, `receipts`, `deals`, `runs` and caps context.dev at 8 calls per run.
+- Run statuses: queued, running, agent_done, verifying, complete, failed. Runs over 12 minutes are cancelled (`reapIfStale`).
+- Verifier (`src/lib/verify.ts`) is code, not a model: re-scrapes each receipt URL and checks every `$` amount in the claim appears on the page; stores screenshots in the public `receipts` storage bucket.
+- `POST /api/runs/[id]/finalize` is an idempotent nudge from the page; `POST /api/runs/[id]/objection` forwards "You be the vendor" input to the same agent as `OBJECTION: ...`.
+- Limits: 6 runs/hour/user, 12/hour/IP (in memory), 8 concurrent runs. `/api/health` checks DB, Omnara and the research key (`?deep=1` also launches a tiny agent).
+- UI: `/run/[id]` watches Supabase realtime plus a 3s poll. `/run/demo` is the scripted replay.
