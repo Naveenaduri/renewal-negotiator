@@ -101,7 +101,7 @@ function Sparks() {
 function Draft(props: { vendorEmail: string; id: string; counter: boolean; deal: Deal | null; judge: Judge | null; offer: Offer | null; sentTo: { to: string } | null; reload: () => Promise<void> }) {
   const { id, counter, deal, judge, offer, sentTo, reload, vendorEmail } = props;
   const outcomeChance = chance(judge?.outcome_chance);
-  const counterChance = chance(judge?.counter_chance);
+  const replyChance = chance(judge?.counter_reply_chance);
   const [body, setBody] = useState((counter ? offer?.suggested_reply : judge?.email) ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -150,8 +150,8 @@ function Draft(props: { vendorEmail: string; id: string; counter: boolean; deal:
       {!counter && (judge?.counter || judge?.outcome) && (
         <div className="grid gap-3 sm:grid-cols-2">
           {judge?.outcome && <div className="rounded-2xl border border-line p-4 text-sm leading-relaxed text-muted"><div className="mono mb-1 text-[11px] tracking-[0.1em] text-dim">LIKELY OUTCOME</div>{outcomeChance !== null && <Chance value={outcomeChance} tone="buyer" label="Chance of this outcome" word="chance" />}<div className="mt-2">{judge.outcome}</div></div>}
-          {judge?.counter && <div className="rounded-2xl border border-vendor/30 bg-vendor/10 p-4 text-sm leading-relaxed"><div className="mono mb-1 text-[11px] tracking-[0.1em] text-vendor">COUNTER YOU MAY FACE</div>{counterChance !== null && <Chance value={counterChance} tone="vendor" label="Chance you face this counter" word="likely" />}<div className="mt-2">{judge.counter}</div>{judge.counter_reply && <div className="mt-1.5 text-muted">Prepared reply: {judge.counter_reply}</div>}</div>}
-          {(outcomeChance !== null || counterChance !== null) && <div className="mono text-[11px] text-dim sm:col-span-2">Percentages are the judge agent&apos;s estimates from the receipts and the rehearsal, not a guarantee.</div>}
+          {judge?.counter && <div className="rounded-2xl border border-vendor/30 bg-vendor/10 p-4 text-sm leading-relaxed"><div className="mono mb-1 text-[11px] tracking-[0.1em] text-vendor">COUNTER YOU MAY FACE</div><div className="mt-1">{judge.counter}</div>{judge.counter_reply && <div className="mt-3 rounded-xl border border-buyer/30 bg-ink/50 p-3"><div className="mono text-[11px] tracking-[0.1em] text-buyer">YOUR PREPARED REPLY</div>{replyChance !== null && <Chance value={replyChance} tone="buyer" label="Chance this reply works" word="it works" />}<div className="mt-2 text-fg">{judge.counter_reply}</div></div>}</div>}
+          {(outcomeChance !== null || replyChance !== null) && <div className="mono text-[11px] text-dim sm:col-span-2">Percentages are the judge agent&apos;s estimates from the receipts and the rehearsal, not a guarantee.</div>}
         </div>
       )}
       {error && <div role="alert" className="text-sm text-[#ff8b82]">{error}</div>}

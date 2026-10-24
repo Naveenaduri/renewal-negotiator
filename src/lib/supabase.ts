@@ -15,6 +15,9 @@ export async function ensureSession(): Promise<string> {
   const { data } = await sb.auth.getSession();
   if (data.session) return data.session.access_token;
   const { data: anon, error } = await sb.auth.signInAnonymously();
-  if (error || !anon.session) throw new Error("Could not start a guest session. Please try again.");
+  if (error || !anon.session) {
+    console.error("Guest session failed:", error);
+    throw new Error(`Could not start a guest session${error?.message ? ` (${error.message})` : ""}. Please try again.`);
+  }
   return anon.session.access_token;
 }

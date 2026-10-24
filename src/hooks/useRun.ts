@@ -23,7 +23,7 @@ export type Judge = {
   outcome?: string;
   outcome_chance?: number;
   counter?: string;
-  counter_chance?: number;
+  counter_reply_chance?: number;
   counter_reply?: string;
   est_saving?: number;
   saving_basis?: string;

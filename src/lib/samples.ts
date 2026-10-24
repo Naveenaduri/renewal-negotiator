@@ -21,10 +21,10 @@ export const SAMPLES: Sample[] = [
   {
     id: "slack",
     label: "Slack: a normal renewal",
-    blurb: "15 members, billed monthly. Public annual pricing exists.",
+    blurb: "50 members at $10 each a month. Slack's own pricing page lists less.",
     from: "billing@slack.com",
     subject: "Your Slack Pro plan renews on 9 December",
-    body: "Hello,\n\nYour Slack Pro workspace for 15 members will renew automatically on 9 December 2026. You are billed monthly at $10.00 per member per month, which comes to $1,800 for the next 12 months.\n\nTo change your plan or your member count, reply to this email before the renewal date.\n\nSlack Billing",
+    body: "Hello,\n\nYour Slack Pro workspace for 50 members will renew automatically on 9 December 2026. You are billed monthly at $10.00 per member per month, which comes to $6,000 for the next 12 months.\n\nTo change your plan or your member count, reply to this email before the renewal date.\n\nSlack Billing",
   },
   {
     id: "gong",
