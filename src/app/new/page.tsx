@@ -36,6 +36,14 @@ export default function NewDeal() {
     });
   }, []);
   const sameAddress = !!myEmail && vendorEmail.trim().toLowerCase() === myEmail;
+  // Why "Start the rehearsal" is disabled, in plain words (sameAddress has its own alert).
+  const blockedReason = typing
+    ? "Loading the sample..."
+    : text.trim().length < 30
+      ? "Paste the renewal email above, or pick a sample."
+      : !vendorEmail.includes("@")
+        ? "Add the email address of the person playing the vendor."
+        : null;
   const [launching, setLaunching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const box = useRef<HTMLTextAreaElement>(null);
@@ -187,7 +195,7 @@ ${sm.body}`;
                 <Magnetic>
                   <button
                     onClick={start}
-                    disabled={launching || typing || text.trim().length < 30 || sameAddress || !vendorEmail.includes("@")}
+                    disabled={launching || !!blockedReason || sameAddress}
                     className="shine inline-flex min-h-12 items-center gap-2.5 rounded-2xl bg-buyer px-7 py-4 text-[17px] font-semibold text-[#06231d] shadow-[0_0_30px_rgba(62,224,193,0.3)] transition disabled:opacity-50"
                   >
                     {launching ? "Opening the room..." : "Start the rehearsal"}
@@ -201,6 +209,9 @@ ${sm.body}`;
                   </button>
                 </Magnetic>
               </div>
+              {blockedReason && !launching && (
+                <p aria-live="polite" className="mono mt-2 text-right text-xs text-vendor">{blockedReason}</p>
+              )}
             </div>
           </Reveal>
 

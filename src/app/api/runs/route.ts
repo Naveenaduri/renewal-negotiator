@@ -4,6 +4,7 @@ import { LimitError, checkLimits } from "@/lib/limits";
 import { launchAgent } from "@/lib/omnara";
 import { supabaseAdmin, userFromRequest } from "@/lib/supabase-admin";
 import { watchRun } from "@/lib/verify";
+import { suggestedVendorEmail } from "@/lib/desk";
 
 export const maxDuration = 300;
 
@@ -30,7 +31,7 @@ export async function POST(req: Request) {
   if (email.length > 8000) return json({ error: "That email is too long. Paste just the renewal notice, under 8,000 characters." }, 400);
 
   // Who plays the vendor. It must differ from the signed-in user, and guests may only use the suggested address.
-  const suggested = (process.env.DEFAULT_VENDOR_EMAIL ?? "").toLowerCase();
+  const suggested = suggestedVendorEmail();
   const vendor = vendorEmail || suggested;
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(vendor)) return json({ error: "Enter the email address of the person playing the vendor." }, 400);
   const { data: who } = await supabaseAdmin().auth.admin.getUserById(user.id);

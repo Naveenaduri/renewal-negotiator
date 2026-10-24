@@ -7,6 +7,12 @@ export const BOXES = {
 } as const;
 export type Box = keyof typeof BOXES;
 
+// Who plays the vendor for guests. Falls back to the demo vendor desk so samples
+// still work if DEFAULT_VENDOR_EMAIL is missing in the deployment.
+export function suggestedVendorEmail(): string {
+  return (process.env.DEFAULT_VENDOR_EMAIL?.trim() || BOXES.vendor).toLowerCase();
+}
+
 export function boxOf(v: string | null): Box | null {
   return v === "vendor" || v === "buyer" ? v : null;
 }
