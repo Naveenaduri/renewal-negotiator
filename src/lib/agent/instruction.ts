@@ -27,17 +27,50 @@ def sb(method, path, body=None):
         t = r.read().decode()
         return json.loads(t) if t else None
 
-def ctx(path, body):
+CACHE_MS = 6 * 60 * 60 * 1000  # reuse a context.dev capture up to 6 hours old (still real data, much faster)
+
+def take(k):
     f = D + "/.ctx_calls"
     n = int(open(f).read()) if os.path.exists(f) else 0
-    if n >= MAX_CALLS:
+    k = max(0, min(k, MAX_CALLS - n))
+    open(f, "w").write(str(n + k))
+    return k
+
+def post(path, body):
+    import time, urllib.error
+    for attempt in range(2):
+        req = urllib.request.Request("https://api.context.dev/v1" + path, method="POST",
+            data=json.dumps(body).encode(), headers={"Authorization": "Bearer " + CTX, "Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=40) as r:
+                return json.loads(r.read().decode())
+        except urllib.error.HTTPError as e:
+            if attempt == 0 and (e.code == 429 or e.code >= 500):
+                time.sleep(min(5, float(e.headers.get("Retry-After") or 1)))
+                continue
+            raise
+
+def ctx(path, body):
+    if take(1) < 1:
         print("LIMIT: the context.dev call budget for this run is used up. Continue with what you already have.")
         sys.exit(0)
-    open(f, "w").write(str(n + 1))
-    req = urllib.request.Request("https://api.context.dev/v1" + path, method="POST",
-        data=json.dumps(body).encode(), headers={"Authorization": "Bearer " + CTX, "Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=90) as r:
-        return json.loads(r.read().decode())
+    return post(path, body)
+
+PRICE_Q = "Plan names and their prices per user per month, for monthly and for annual billing"
+
+def scrape_body(u):
+    # Highlights return only the page passages about pricing (verbatim), so the agent reads
+    # a few hundred words instead of a whole page. Markdown is the fallback.
+    return {"url": u, "formats": {"markdown": True, "highlights": True},
+            "highlightsParams": {"query": PRICE_Q, "maxCharacters": 3000}, "maxAgeMs": CACHE_MS,
+            "timeoutOpts": {"milliseconds": 25000, "behavior": "return-partial"}}
+
+def page_text(res):
+    hl = (res.get("highlights") or {}).get("data") or []
+    if hl:
+        return "\n...\n".join(hl)
+    md = (res.get("markdown") or {}).get("data")
+    return md[:12000] if md else "ERROR: could not read this page. Try another source."
 
 def stdin_text():
     if select.select([sys.stdin], [], [], 1.0)[0]:
@@ -80,13 +113,27 @@ elif cmd == "status":
     sb("PATCH", "runs?id=eq." + rd(".run_id"), {"status": a[0]}); print("ok")
 elif cmd == "search":
     n = int(a[1]) if len(a) > 1 else 5
-    res = ctx("/web/search", {"query": a[0], "numResults": n})
+    res = ctx("/web/search", {"query": a[0], "numResults": n, "timeoutOpts": {"milliseconds": 15000, "behavior": "return-partial"}})
     for r in res.get("results", []):
         print(r.get("title", ""), "|", r.get("url", ""), "|", (r.get("description") or "")[:200])
 elif cmd == "scrape":
-    res = ctx("/web/scrape", {"url": a[0], "formats": {"markdown": True}, "maxAgeMs": 0})
-    md = (res.get("markdown") or {}).get("data")
-    print(md[:12000] if md else "ERROR: could not read this page. Try another source.")
+    print(page_text(ctx("/web/scrape", scrape_body(a[0]))))
+elif cmd == "scrapes":
+    from concurrent.futures import ThreadPoolExecutor
+    urls = a[:3]
+    k = take(len(urls))
+    if k < 1:
+        print("LIMIT: the context.dev call budget for this run is used up. Continue with what you already have.")
+        sys.exit(0)
+    def one(u):
+        try:
+            return u, page_text(post("/web/scrape", scrape_body(u)))
+        except Exception as e:
+            return u, "ERROR: could not read this page (" + str(e)[:120] + "). Try another source."
+    with ThreadPoolExecutor(max_workers=2) as ex:  # 2 at a time: the context.dev free plan allows 2 concurrent requests
+        for u, text in ex.map(one, urls[:k]):
+            print("=== PAGE " + u)
+            print(text)
 else:
     print("unknown command"); sys.exit(1)
 `;
@@ -127,12 +174,13 @@ Text arguments are ALWAYS passed on stdin with a quoted heredoc, so dollar signs
 - receipt SOURCE_URL: body on stdin is the claim. Prints the label (R1, R2...) to cite.
 - deal: JSON on stdin with any of vendor, product, price, renewal_date, est_saving.
 - status VALUE
-- search "query" [n]: web search through context.dev. scrape URL: page markdown through context.dev.
+- search "query" [n]: web search through context.dev. scrape URL: one page's markdown through context.dev.
+- scrapes URL1 URL2 [URL3]: read up to 3 pages AT ONCE (in parallel). Prefer this over several scrape calls.
 The context.dev budget is ${MAX_CONTEXT_CALLS} calls in total. Plan them: about 2 for the vendor, 2 to 4 for alternatives.
 
 ## Roles, in order
 1. EXTRACTOR. step extractor start. Read the email. Run: deal with vendor, product, price (the total ANNUAL cost in USD, computed only from numbers in the email, otherwise omit it) and renewal_date as YYYY-MM-DD. Then step extractor note with one line each for seats, billing period, contact (say "not stated" when absent). step extractor done. Run: status running. CHECKPOINT: gate "extraction" (bullets: vendor, product, annual price, seats, renewal date; question: does this match the email?).
-2. RESEARCHER. step researcher start. Use search and scrape to find the vendor's PUBLIC pricing page and 2 or 3 real alternatives. For every price you want to use, record a receipt: the claim must be one plain sentence that contains the price exactly as the fetched page shows it (for example "Team plan: $11 per seat per month, billed annually"), and SOURCE_URL must be the page you fetched. If you cannot find a public price, record no receipt for it and run: step researcher note "no verified pricing found for <name>". NEVER invent or estimate a price, and never record a price you did not read in fetched text. step researcher done. CHECKPOINT: gate "research" (bullets: each receipt label with its price and source host, anything not found; question: are these the right sources, and what should the buyer push on?).
+2. RESEARCHER. step researcher start. Find the vendor's PUBLIC pricing page and 2 real alternatives. If you know the official pricing URLs (for example https://slack.com/pricing, https://www.dropbox.com/plans), skip search and read the vendor page plus 2 alternative pricing pages with ONE scrapes call. Use search only for a URL you do not know. For every price you want to use, record a receipt: the claim must be one plain sentence that contains the price exactly as the fetched page shows it (for example "Team plan: $11 per seat per month, billed annually"), and SOURCE_URL must be the page you fetched. If you cannot find a public price, record no receipt for it and run: step researcher note "no verified pricing found for <name>". NEVER invent or estimate a price, and never record a price you did not read in fetched text. step researcher done. CHECKPOINT: gate "research" (bullets: each receipt label with its price and source host, anything not found; question: are these the right sources, and what should the buyer push on?).
 3. BUYER and VENDOR REP SIMULATION, up to 3 rounds. For each round run: step buyer note (or vendor_sim note) with a one-line status, then msg buyer ROUND with the buyer's email-style message, then msg vendor_sim ROUND with the rep's reply. The buyer may state a price ONLY if it has a receipt, and must cite it like [R1]. The vendor rep is a SIMULATION: it replies like a realistic account rep, grounded only in the vendor's scraped public pricing and terms plus generic negotiation moves (ask about seats, term length, annual billing, usage, timing). It must NEVER invent a specific discount policy, percentage or price. If there is no verified pricing, negotiate on annual billing, fewer seats and term length instead. Stop early when the rehearsal has converged. After EACH round, CHECKPOINT: gate "round N" (bullets: the buyer's ask, the rep's reply, the leverage that worked or is missing; question: should the next round change tactics?). Apply any guidance in the next round. No checkpoint is needed after the last round.
 4. JUDGE. step judge start. Run: msg judge 0 with ONLY this JSON on stdin (valid JSON, no code fences):
 {"email": "<final email to the vendor, plain text, uses only receipt-backed prices>", "outcome": "<one or two sentences: the likely outcome>", "outcome_chance": <a whole number from 5 to 95: your estimate of the chance the vendor agrees to what this email asks for, based only on the receipts and the rehearsal>, "counter": "<the one counter the user is most likely to face>", "counter_reply": "<a prepared response, citing a receipt like [R2] if you use a price>", "counter_reply_chance": <a whole number from 5 to 95: your estimate of the chance this prepared response gets the vendor to agree, based only on the receipts and the rehearsal>, "est_saving": <number of USD per year, only from receipt-backed prices, or 0>, "saving_basis": "<the arithmetic in one line>", "claims": [{"text": "<each price claim sentence that appears in the email>", "receipt": "R1"}]}
@@ -143,7 +191,7 @@ Every price in the email must appear in claims with its receipt label. Then run:
 Never invent terms or numbers the vendor did not write. Then run: status vendor_reviewed. After that wait again; more VENDOR_REPLY messages may follow.
 
 If anything fails and you cannot continue, run: step judge error with what went wrong in one sentence, then status failed.
-Keep every command small. Do not print secrets. Be fast: the user is watching live.
+SPEED: the user is watching live on stage, so every stage must finish in under 10 seconds. Do each stage in ONE run_command: chain all of that stage's rn.py calls (step, deal, receipt, msg, status, gate) in one shell script, each with its own quoted heredoc, with the gate last. Keep every buyer and vendor message under 70 words, the final email under 140 words, and notes to one short line. Do not print secrets.
 `.trim();
 
 export function launchMessage(args: { runId: string; dealId: string; email: string; mode?: "review" | "autopilot" }) {

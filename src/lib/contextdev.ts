@@ -37,7 +37,7 @@ export async function scrapePage(
     url,
     markdown: res.markdown?.success ? res.markdown.data : null,
     screenshot: res.screenshot?.success ? res.screenshot.data : null,
-    fetchedAt: new Date().toISOString(),
+    fetchedAt: new Date(Date.now() - (res.cache_metadata?.age_ms ?? 0)).toISOString(), // when the page was really captured
     requestId: res.request_id,
     creditsUsed: res.key_metadata?.credits_consumed ?? null,
   };

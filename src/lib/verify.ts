@@ -67,21 +67,21 @@ export async function finalizeRun(runId: string): Promise<string> {
 
     // Fetch each distinct source page once (receipts often share a page), retrying a failure once.
     const urls = [...new Set((receipts ?? []).map((r) => r.source_url as string))];
-    const pages = new Map<string, { markdown: string | null; screenshot: string | null }>();
+    const pages = new Map<string, { markdown: string | null; screenshot: string | null; fetchedAt: string | null }>();
     const fetchOnce = async (url: string) => {
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
-          const p = await scrapePage(url, { screenshot: true, maxAgeMs: 0 });
-          if (p.markdown) return { markdown: p.markdown, screenshot: p.screenshot };
+          const p = await scrapePage(url, { screenshot: true, maxAgeMs: 6 * 60 * 60 * 1000 });
+          if (p.markdown) return { markdown: p.markdown, screenshot: p.screenshot, fetchedAt: p.fetchedAt };
         } catch {
           // fall through to the retry
         }
         await new Promise((res) => setTimeout(res, 1200));
       }
-      return { markdown: null, screenshot: null };
+      return { markdown: null, screenshot: null, fetchedAt: null };
     };
-    for (let i = 0; i < urls.length; i += 3) {
-      await Promise.all(urls.slice(i, i + 3).map(async (u) => pages.set(u, await fetchOnce(u))));
+    for (let i = 0; i < urls.length; i += 2) {
+      await Promise.all(urls.slice(i, i + 2).map(async (u) => pages.set(u, await fetchOnce(u))));
     }
 
     for (const [i, r] of (receipts ?? []).entries()) {
@@ -90,7 +90,7 @@ export async function finalizeRun(runId: string): Promise<string> {
       const ok = !!page?.markdown && claimMatchesPage(r.claim ?? "", page.markdown);
       const shot = page?.screenshot ? await storeScreenshot(runId, r.id, page.screenshot) : null;
       verifiedByLabel.set(label, ok);
-      await sb.from("receipts").update({ verified: ok, screenshot_url: shot, fetched_at: new Date().toISOString() }).eq("id", r.id);
+      await sb.from("receipts").update({ verified: ok, screenshot_url: shot, fetched_at: page?.fetchedAt ?? new Date().toISOString() }).eq("id", r.id);
       await step(runId, "note", ok ? `${label} verified against ${new URL(r.source_url).host}` : page?.markdown ? `${label}: the price was not found on the page, so it is flagged` : `${label}: the page could not be fetched, so it is flagged`);
     }
 
