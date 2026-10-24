@@ -1,5 +1,5 @@
-// Made-up renewal emails for the three sample paths. Vendors are fictional;
-// the pricing the agents research for real vendors comes only from fetched pages.
+// Sample renewal emails. The emails and their prices are made up, but the vendors are real,
+// so the agents research real public pricing pages for them.
 export type Sample = {
   id: string;
   label: string;
@@ -11,27 +11,27 @@ export type Sample = {
 
 export const SAMPLES: Sample[] = [
   {
-    id: "pm",
-    label: "Project management tool",
-    blurb: "12 seats, billed monthly. Public pricing page available.",
-    from: "billing@taskboard.example",
-    subject: "Your Team plan renews on 14 Nov",
-    body: "Hi there,\n\nYour Taskboard Team subscription will renew automatically on 14 November 2026 for 12 seats at $14 per seat per month, billed monthly. That is $2,016 for the next 12 months.\n\nIf you would like to change your plan or seat count, reply to this email before the renewal date.\n\nThanks,\nTaskboard Billing",
+    id: "dropbox",
+    label: "Dropbox: a price increase",
+    blurb: "10 users, $15 going up to $18 per user per month. Argue the rise down.",
+    from: "billing@dropbox.com",
+    subject: "Your Dropbox Business plan is changing on 15 December",
+    body: "Hi there,\n\nYour Dropbox Business subscription for 10 users will renew on 15 December 2026. Your rate is increasing from $15 to $18 per user per month, billed monthly. That is $2,160 for the next 12 months.\n\nTo make changes, reply to this email before the renewal date.\n\nDropbox Billing",
   },
   {
-    id: "host",
-    label: "Domain and hosting",
-    blurb: "Renewal after an intro price. Yearly term.",
-    from: "renewals@hostwell.example",
-    subject: "Your domain and hosting renew on 2 Dec",
-    body: "Hello,\n\nYour Hostwell Business hosting plan and one domain will renew on 2 December 2026 at the standard yearly rate of $312. Your first-year promotional price has ended.\n\nTo make changes, sign in to your account before the renewal date.\n\nHostwell Renewals",
+    id: "slack",
+    label: "Slack: a normal renewal",
+    blurb: "15 members, billed monthly. Public annual pricing exists.",
+    from: "billing@slack.com",
+    subject: "Your Slack Pro plan renews on 9 December",
+    body: "Hello,\n\nYour Slack Pro workspace for 15 members will renew automatically on 9 December 2026. You are billed monthly at $10.00 per member per month, which comes to $1,800 for the next 12 months.\n\nTo change your plan or your member count, reply to this email before the renewal date.\n\nSlack Billing",
   },
   {
-    id: "cloud",
-    label: "Cloud storage",
-    blurb: "Storage tier upsell at renewal. Per-user pricing.",
-    from: "accounts@cloudnest.example",
-    subject: "Renewal notice: Cloudnest Teams, 8 users",
-    body: "Hi,\n\nYour Cloudnest Teams plan for 8 users renews on 20 December 2026 at $15 per user per month, billed yearly. We noticed you are close to your storage limit and recommend upgrading to the Business tier.\n\nReply to this email to discuss your options.\n\nCloudnest Accounts",
+    id: "gong",
+    label: "Gong: no public price",
+    blurb: "25 seats, $35,000 a year. The vendor does not publish prices.",
+    from: "billing@gong.io",
+    subject: "Your Gong subscription renews on 20 January",
+    body: "Hello,\n\nYour Gong subscription for 25 seats will renew automatically on 20 January 2027 at $1,400 per seat per year, which comes to $35,000 for the next 12 months.\n\nTo adjust your seat count or term, reply to this email before the renewal date.\n\nGong Billing",
   },
 ];
