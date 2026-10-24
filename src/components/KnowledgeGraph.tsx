@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useMemo, useState } from "react";
 import type { Deal, Gate, Judge, Message, ReceiptRow, RunRow, Step } from "@/hooks/useRun";
+import { forVendor } from "@/lib/for-vendor";
 
 type State = "done" | "active" | "pending" | "flagged";
 type Kind = "email" | "source" | "round" | "you" | "claim" | "final";
@@ -162,7 +163,7 @@ export default function KnowledgeGraph(props: {
       id: "final", kind: "final", col: 4, x: COLS[4], y: 215, label: "✉",
       name: "final email", sub: judge?.email ? "ready to send" : "after the rehearsal",
       state: judge?.email ? "done" : "pending",
-      detail: { title: "Final email", text: judge?.email ?? "The judge writes this after the rehearsal." },
+      detail: { title: "Final email", text: judge?.email ? forVendor(judge.email) : "The judge writes this after the rehearsal." },
     });
     return { nodes: ns, edges: es };
   }, [run, deal, steps, messages, receipts, judge, gate]);

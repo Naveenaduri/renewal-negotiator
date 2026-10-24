@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 import { CountUp, Magnetic } from "@/components/motion";
 import type { Deal, Judge, Offer, RunRow, Step } from "@/hooks/useRun";
+import { forVendor } from "@/lib/for-vendor";
 import { ensureSession } from "@/lib/supabase";
 
 const money = (n: number) => "$" + Math.round(n).toLocaleString("en-US");
@@ -139,7 +140,7 @@ function Draft(props: { vendorEmail: string; id: string; counter: boolean; deal:
   const { id, counter, deal, judge, offer, sentTo, reload, vendorEmail } = props;
   const outcomeChance = chance(judge?.outcome_chance);
   const replyChance = chance(judge?.counter_reply_chance);
-  const [body, setBody] = useState((counter ? offer?.suggested_reply : judge?.email) ?? "");
+  const [body, setBody] = useState(forVendor((counter ? offer?.suggested_reply : judge?.email) ?? ""));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -187,7 +188,7 @@ function Draft(props: { vendorEmail: string; id: string; counter: boolean; deal:
       {!counter && (judge?.counter || judge?.outcome) && (
         <div className="grid gap-3 sm:grid-cols-2">
           {judge?.outcome && <div className="rounded-2xl border border-line p-4 text-sm leading-relaxed text-muted"><div className="mono mb-1 text-[11px] tracking-[0.1em] text-dim">LIKELY OUTCOME</div>{outcomeChance !== null && <Chance value={outcomeChance} tone="buyer" label="Chance of this outcome" word="chance" />}<div className="mt-2">{judge.outcome}</div></div>}
-          {judge?.counter && <div className="rounded-2xl border border-vendor/30 bg-vendor/10 p-4 text-sm leading-relaxed"><div className="mono mb-1 text-[11px] tracking-[0.1em] text-vendor">COUNTER YOU MAY FACE</div><div className="mt-1">{judge.counter}</div>{judge.counter_reply && <div className="mt-3 rounded-xl border border-buyer/30 bg-ink/50 p-3"><div className="mono text-[11px] tracking-[0.1em] text-buyer">YOUR PREPARED REPLY</div>{replyChance !== null && <Chance value={replyChance} tone="buyer" label="Chance this reply works" word="it works" />}<div className="mt-2 text-fg">{judge.counter_reply}</div></div>}</div>}
+          {judge?.counter && <div className="rounded-2xl border border-vendor/30 bg-vendor/10 p-4 text-sm leading-relaxed"><div className="mono mb-1 text-[11px] tracking-[0.1em] text-vendor">COUNTER YOU MAY FACE</div><div className="mt-1">{judge.counter}</div>{judge.counter_reply && <div className="mt-3 rounded-xl border border-buyer/30 bg-ink/50 p-3"><div className="mono text-[11px] tracking-[0.1em] text-buyer">YOUR PREPARED REPLY</div>{replyChance !== null && <Chance value={replyChance} tone="buyer" label="Chance this reply works" word="it works" />}<div className="mt-2 text-fg">{forVendor(judge.counter_reply)}</div></div>}</div>}
           {(outcomeChance !== null || replyChance !== null) && <div className="mono text-[11px] text-dim sm:col-span-2">Percentages are the judge agent&apos;s estimates from the receipts and the rehearsal, not a guarantee.</div>}
         </div>
       )}
@@ -259,12 +260,12 @@ export default function FinalPanel(props: {
         {offer?.suggested_reply && (
           <div className="mx-auto mt-8 max-w-[640px] text-left">
             <div className="mono mb-2 text-[11px] tracking-[0.12em] text-buyer">REPLY WITH THIS TO LOCK IT IN</div>
-            <div className="mono whitespace-pre-wrap rounded-2xl bg-paper p-5 text-sm leading-[1.7] text-[#10161f]">{offer.suggested_reply}</div>
+            <div className="mono whitespace-pre-wrap rounded-2xl bg-paper p-5 text-sm leading-[1.7] text-[#10161f]">{forVendor(offer.suggested_reply)}</div>
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <Magnetic>
                 <button
                   onClick={() => {
-                    navigator.clipboard?.writeText(offer.suggested_reply ?? "").then(() => setCopied(true)).catch(() => {});
+                    navigator.clipboard?.writeText(forVendor(offer.suggested_reply ?? "")).then(() => setCopied(true)).catch(() => {});
                     setTimeout(() => setCopied(false), 1800);
                   }}
                   className="shine min-h-12 rounded-xl bg-buyer px-6 py-3 font-semibold text-[#06231d]"

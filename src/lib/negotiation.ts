@@ -6,6 +6,7 @@ import { MailError, getEmailBody, listInbound, sendMail, stripQuoted } from "./p
 import { winEmail } from "./result-email";
 import { supabaseAdmin } from "./supabase-admin";
 import { agentIdFor } from "./verify";
+import { forVendor } from "@/lib/for-vendor";
 
 export const EMAIL_OK = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const MAX_EXCHANGES = 5;
@@ -126,7 +127,7 @@ export async function reviewOffer(runId: string): Promise<string> {
     if (!flipped?.length) return "deal_done";
     await sb.from("deals").update({ est_saving: Math.round(was - now), status: "won" }).eq("id", run.deal_id);
     await step(runId, "mail", "won", JSON.stringify({ was, now }));
-    await emailWin(runId, run.user_id, { vendor: deal?.vendor ?? "your vendor", was, now, quote: offer.offer_quote ?? vendorText.slice(0, 280), reply: offer.suggested_reply ?? "", renews: deal?.renewal_date ?? null, to: (await lastSent(runId))?.to ?? "the vendor" }).catch((e) => console.error("win email failed", e));
+    await emailWin(runId, run.user_id, { vendor: deal?.vendor ?? "your vendor", was, now, quote: offer.offer_quote ?? vendorText.slice(0, 280), reply: forVendor(offer.suggested_reply ?? "") ?? "", renews: deal?.renewal_date ?? null, to: (await lastSent(runId))?.to ?? "the vendor" }).catch((e) => console.error("win email failed", e));
     return "deal_done";
   }
   await sb.from("runs").update({ status: "reply_ready" }).eq("id", runId).eq("status", "vendor_reviewed");
