@@ -21,9 +21,10 @@ function Callback() {
     const tokenHash = sp.get("token_hash");
     const raw = sp.get("next") ?? "/new";
     const next = raw.startsWith("/") && !raw.startsWith("//") ? raw : "/new";
+    const kind = sp.get("type") === "signup" ? "signup" : "magiclink";
     if (!tokenHash) return;
     supabaseBrowser()
-      .auth.verifyOtp({ token_hash: tokenHash, type: "magiclink" })
+      .auth.verifyOtp({ token_hash: tokenHash, type: kind })
       .then(({ error: err }) => {
         if (err) setError("This sign-in link has expired or was already used. Request a new one.");
         else {

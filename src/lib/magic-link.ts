@@ -14,7 +14,9 @@ export function safeNext(next: unknown): string {
 export async function createSignInLink(email: string, next: string): Promise<string> {
   const { data, error } = await supabaseAdmin().auth.admin.generateLink({ type: "magiclink", email });
   const token = data?.properties?.hashed_token;
+  // A brand-new account gets a "signup" token, an existing one a "magiclink" token. The link has to say which.
+  const kind = data?.properties?.verification_type === "signup" ? "signup" : "magiclink";
   if (error || !token) throw new Error("Could not create a sign-in link");
   // Our own callback page redeems the token in the browser, so mail scanners that only GET the link cannot use it up.
-  return `${appUrl()}/auth/callback?token_hash=${encodeURIComponent(token)}&next=${encodeURIComponent(safeNext(next))}`;
+  return `${appUrl()}/auth/callback?token_hash=${encodeURIComponent(token)}&type=${kind}&next=${encodeURIComponent(safeNext(next))}`;
 }
