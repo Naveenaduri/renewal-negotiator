@@ -1,3 +1,5 @@
+Read SPEC.md before doing anything. Work in small steps, tell me how to test each, add no features not in the spec, never invent prices, keep keys server-side.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 ## This is NOT the Next.js you know
@@ -20,6 +22,7 @@ Renewal Negotiator uses [Context.dev](https://docs.context.dev) to research vend
 - **Retries:** handled by the SDK (`maxRetries: 2`). It retries 408/409/429/5xx with bounded exponential backoff and honors `Retry-After`. It never retries 400/401/402/403/422. Answers uses `maxRetries: 1`. Keep the client timeout longer than `timeoutOpts.milliseconds` (the wrapper adds 15s headroom).
 - **Freshness:** Scrape caches for 3 days by default. The wrapper sends `maxAgeMs` explicitly: 24h by default, and `0` when the caller passes `fresh: true`. Answers can reuse page reads up to 30 days old in fast mode.
 - **Screenshots:** use Scrape `formats.screenshot`. It returns a `data:image/...;base64` URL and has no hosted URL. Do NOT use the SDK's legacy `client.web.screenshot()` (GET /web/screenshot). Default is a JPEG of the viewport, because Vercel limits function responses to 4.5 MB. `/api/research` drops the largest screenshots if the payload goes over 4 MB.
+- **Supabase receipts:** `receipts.screenshot_url` (supabase/schema.sql) expects a URL, but Scrape returns base64 data URLs. Upload them to Supabase Storage before inserting a receipt (not implemented yet).
 - **Scrape outputs:** a 200 response can still contain failed outputs, so check `output.success` before reading `data`.
 - **Next 16 + Cache Components:** don't export `runtime` from route files. `maxDuration` is fine (research = 120s).
 - **Tests:** `npm test` (vitest) mocks `@/lib/context-dev` with `vi.mock`. Automated tests must never hit the live API, because every call costs credits. Manual smoke test (about 2 credits): run `npm run dev`, then `curl -X POST localhost:3000/api/evidence -H 'content-type: application/json' -d '{"url":"https://linear.app/pricing","query":"plan prices?"}'`.
