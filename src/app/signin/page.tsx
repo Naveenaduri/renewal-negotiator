@@ -133,6 +133,7 @@ function SignIn() {
           </AnimatePresence>
         </div>
 
+        <p className="mono text-xs leading-relaxed text-dim">Demo tip: sign in as <span className="text-fg">buyer@vast-crane.primitive.email</span>, then open the link from the Buyer inbox on the Mail desk.</p>
         <Link href="/new" className="mono text-sm text-muted transition hover:text-buyer">Or try a sample without signing in →</Link>
       </div>
     </div>

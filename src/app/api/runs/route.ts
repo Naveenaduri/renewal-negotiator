@@ -38,7 +38,8 @@ export async function POST(req: Request) {
   if (me && !me.is_anonymous && me.email?.toLowerCase() === vendor) {
     return json({ error: "The vendor and you cannot be the same address. Use a different inbox for the vendor." }, 400);
   }
-  if (me?.is_anonymous && vendor !== suggested) {
+  const guestOk = vendor === suggested || vendor.endsWith("@vast-crane.primitive.email") || (process.env.GUEST_VENDOR_ALLOW ?? "").toLowerCase().split(",").map((x) => x.trim()).includes(vendor);
+  if (me?.is_anonymous && !guestOk) {
     return json({ error: "Sign in to choose a different vendor address." }, 403);
   }
 

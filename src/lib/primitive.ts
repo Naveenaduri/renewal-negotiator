@@ -6,7 +6,7 @@ export class MailError extends Error {}
 export const appUrl = () => (process.env.APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
 
 // Sends an email from our managed address. Callers only send to the signed-in user or to a vendor address the user approved.
-export async function sendMail(opts: { to: string; subject: string; text: string; html?: string; replyTo?: string; idempotencyKey?: string }): Promise<void> {
+export async function sendMail(opts: { from?: string; to: string; subject: string; text: string; html?: string; replyTo?: string; idempotencyKey?: string }): Promise<void> {
   const key = process.env.PRIMITIVE_API_KEY;
   if (!key) throw new MailError("PRIMITIVE_API_KEY is not set");
   const r = await fetch(`${BASE}/send-mail`, {
@@ -17,7 +17,7 @@ export async function sendMail(opts: { to: string; subject: string; text: string
       ...(opts.idempotencyKey ? { "Idempotency-Key": opts.idempotencyKey } : {}),
     },
     body: JSON.stringify({
-      from: process.env.PRIMITIVE_FROM ?? "hello@vast-crane.primitive.email",
+      from: opts.from ?? process.env.PRIMITIVE_FROM ?? "hello@vast-crane.primitive.email",
       to: opts.to,
       subject: opts.subject,
       body_text: opts.text,
@@ -38,7 +38,7 @@ export async function sendMail(opts: { to: string; subject: string; text: string
   }
 }
 
-export type InboundRow = { id: string; sender: string; subject: string; received_at: string; snippet?: string };
+export type InboundRow = { id: string; sender: string; to: string; subject: string; received_at: string; snippet?: string };
 
 async function get<T>(path: string): Promise<T> {
   const key = process.env.PRIMITIVE_API_KEY;
@@ -51,8 +51,8 @@ async function get<T>(path: string): Promise<T> {
 
 // Newest mail first. Used to pick up the vendor's reply.
 export async function listInbound(limit = 25): Promise<InboundRow[]> {
-  const rows = await get<{ id: string; from_email?: string; sender?: string; subject?: string; received_at: string; snippet?: string }[]>(`/emails?limit=${limit}`);
-  return rows.map((r) => ({ id: r.id, sender: (r.from_email ?? r.sender ?? "").toLowerCase(), subject: r.subject ?? "", received_at: r.received_at, snippet: r.snippet }));
+  const rows = await get<{ id: string; from_email?: string; sender?: string; to_email?: string; recipient?: string; subject?: string; received_at: string; snippet?: string }[]>(`/emails?limit=${limit}`);
+  return rows.map((r) => ({ id: r.id, sender: (r.from_email ?? r.sender ?? "").toLowerCase(), to: (r.to_email ?? r.recipient ?? "").toLowerCase(), subject: r.subject ?? "", received_at: r.received_at, snippet: r.snippet }));
 }
 
 export async function getEmailBody(id: string): Promise<string> {
@@ -70,4 +70,20 @@ export function stripQuoted(body: string): string {
     out.push(line);
   }
   return out.join("\n").trim();
+}
+
+export type FullEmail = { id: string; from: string; to: string; subject: string; text: string; html: string | null; received_at: string };
+
+// One stored email with its body, for the mail desk.
+export async function getEmail(id: string): Promise<FullEmail> {
+  const e = await get<{ id: string; sender?: string; from_email?: string; recipient?: string; to_email?: string; subject?: string; body_text?: string | null; body_html?: string | null; parsed?: { body_text?: string | null; body_html?: string | null }; received_at: string }>(`/emails/${id}`);
+  return {
+    id: e.id,
+    from: (e.from_email ?? e.sender ?? "").toLowerCase(),
+    to: (e.to_email ?? e.recipient ?? "").toLowerCase(),
+    subject: e.subject ?? "",
+    text: e.body_text ?? e.parsed?.body_text ?? "",
+    html: e.body_html ?? e.parsed?.body_html ?? null,
+    received_at: e.received_at,
+  };
 }

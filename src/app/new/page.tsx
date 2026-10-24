@@ -8,9 +8,9 @@ import { SAMPLES } from "@/lib/samples";
 import { ensureSession, supabaseBrowser } from "@/lib/supabase";
 
 const ICONS = [
+  <path key="c" d="M7 18a4 4 0 0 1-.5-8A6 6 0 0 1 18 8.5 4.5 4.5 0 0 1 17.5 18z" />,
   <path key="a" d="M3 7a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3zM9 4v16M3 10h6" />,
   <path key="b" d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" />,
-  <path key="c" d="M7 18a4 4 0 0 1-.5-8A6 6 0 0 1 18 8.5 4.5 4.5 0 0 1 17.5 18z" />,
 ];
 
 export default function NewDeal() {
@@ -235,7 +235,7 @@ ${sm.body}`;
               );
             })}
             <p className="mono px-1 text-[11px] leading-relaxed text-dim">
-              Sample emails are made up. The pricing the agents research is real and public.
+              The emails and their prices are made up. The pricing the agents research is real and public.
             </p>
           </div>
         </div>

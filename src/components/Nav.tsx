@@ -68,6 +68,9 @@ export default function Nav() {
             <Link href="/pricing" className={`rounded-lg px-3 py-2 transition-colors hover:text-fg ${onPricing ? "text-fg" : ""}`}>
               Pricing
             </Link>
+            <Link href="/mail" className={`rounded-lg px-3 py-2 transition-colors hover:text-fg ${path.startsWith("/mail") ? "text-fg" : ""}`}>
+              Mail desk
+            </Link>
             <AnimatePresence mode="wait" initial={false}>
               {who ? (
                 <motion.div key="in" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6 }} className="ml-2 flex items-center gap-2">
@@ -115,6 +118,9 @@ export default function Nav() {
               </Link>
               <Link href="/pricing" onClick={close} className={`flex min-h-12 items-center rounded-xl px-4 ${onPricing ? "bg-panel2 text-fg" : "text-muted"}`}>
                 Pricing
+              </Link>
+              <Link href="/mail" onClick={close} className={`flex min-h-12 items-center rounded-xl px-4 ${path.startsWith("/mail") ? "bg-panel2 text-fg" : "text-muted"}`}>
+                Mail desk
               </Link>
               {who ? (
                 <>
