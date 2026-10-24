@@ -30,6 +30,43 @@ function Saving(props: { deal: Deal | null; judge: Judge | null }) {
   const was = Number(props.deal?.price ?? 0);
   const saving = Number(props.deal?.est_saving ?? 0);
   const basis = props.judge?.saving_basis;
+  const target = Number(props.judge?.target_price_annual ?? 0);
+  const targetChance = chance(props.judge?.target_chance);
+  const floor = saving > 0 && was > saving ? was - saving : was;
+  if (was > 0 && target > 0 && target < floor) {
+    const askSave = was - target;
+    return (
+      <div className="flex flex-col gap-3 rounded-2xl border border-buyer/40 bg-buyer/10 p-4 sm:p-5">
+        <div className="mono text-[11px] tracking-[0.1em] text-buyer">YOUR ASK · OUR PROPOSAL, NOT A PUBLISHED PRICE</div>
+        <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
+          <div className="flex flex-col">
+            <span className="mono text-[11px] text-dim">TODAY</span>
+            <span className="disp text-xl text-muted line-through">{money(was)}/yr</span>
+          </div>
+          <span className="pb-1 text-vendor" aria-hidden>→</span>
+          <div className="flex flex-col">
+            <span className="mono text-[11px] text-dim">ASK</span>
+            <span className="disp text-xl font-bold text-fg">{money(target)}/yr</span>
+          </div>
+          <div className="flex flex-col sm:ml-auto sm:items-end">
+            <span className="mono text-[11px] text-dim">YOU COULD SAVE</span>
+            <span className="disp text-3xl font-bold leading-none text-buyer">
+              <CountUp to={askSave} prefix="$" /> <span className="text-base font-semibold">/yr · {Math.round((askSave / was) * 100)}%</span>
+            </span>
+          </div>
+        </div>
+        {targetChance !== null && <Chance value={targetChance} tone="buyer" label="Chance the vendor accepts the ask" word="chance" />}
+        {props.judge?.target_basis && <div className="mono text-xs leading-relaxed text-muted">How: {props.judge.target_basis}</div>}
+        {saving > 0 && (
+          <div className="rounded-xl border border-line bg-ink/50 p-3 text-sm">
+            <span className="mono text-[11px] tracking-[0.1em] text-dim">GUARANTEED FALLBACK · VERIFIED PUBLISHED PRICE</span>
+            <div className="mt-1 text-fg">{money(floor)}/yr, saving <span className="font-semibold text-buyer">{money(saving)}/yr</span> ({Math.round((saving / was) * 100)}%) even if they say no.</div>
+            {basis && <div className="mono mt-1 text-xs text-muted">How: {basis}</div>}
+          </div>
+        )}
+      </div>
+    );
+  }
   if (saving > 0 && was > saving) {
     const after = was - saving;
     return (

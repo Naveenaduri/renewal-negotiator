@@ -22,6 +22,9 @@ export type Judge = {
   email?: string;
   outcome?: string;
   outcome_chance?: number;
+  target_price_annual?: number | null;
+  target_basis?: string;
+  target_chance?: number;
   counter?: string;
   counter_reply_chance?: number;
   counter_reply?: string;
