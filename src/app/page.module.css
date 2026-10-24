@@ -1,0 +1,18 @@
+.main { max-width: 1100px; margin: 0 auto; padding: 32px 20px 80px; display: flex; flex-direction: column; gap: 24px; }
+.muted { color: #666; }
+.form { display: grid; grid-template-columns: 2fr 2fr 3fr auto; gap: 8px; align-items: end; }
+.form label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.form input { padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px; font: inherit; }
+.button { padding: 9px 16px; border-radius: 6px; border: 0; background: #111; color: #fff; font: inherit; cursor: pointer; }
+.button:disabled { opacity: 0.5; cursor: wait; }
+.error { padding: 12px; border-radius: 6px; background: #fdecec; color: #8a1c1c; }
+.warn { padding: 8px 12px; border-radius: 6px; background: #fff6e0; color: #7a5200; font-size: 14px; }
+.table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.table th, .table td { text-align: left; padding: 8px; border-bottom: 1px solid #eee; vertical-align: top; }
+.thumb { width: 160px; height: 100px; object-fit: cover; object-position: top; border: 1px solid #ddd; border-radius: 4px; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; background: #eee; }
+.verified { background: #def7e5; color: #11612b; }
+.captured { background: #e6eefc; color: #1d3f8a; }
+.unsourced, .not_captured { background: #fdecec; color: #8a1c1c; }
+.small { font-size: 12px; color: #666; word-break: break-all; }
+@media (max-width: 800px) { .form { grid-template-columns: 1fr; } }
