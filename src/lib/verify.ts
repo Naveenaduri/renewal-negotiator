@@ -142,11 +142,57 @@ export async function reapIfStale(runId: string): Promise<boolean> {
 export { agentIdFor };
 
 // Server-side watcher: keeps going after the browser closes, until the agent hands over.
+// Capture a receipt's screenshot as soon as the agent records it, so the page shows the
+// source while research is still going (the Verifier re-checks everything at the end).
+function screenshotter(runId: string) {
+  const sb = supabaseAdmin();
+  const started = new Set<string>(); // source URLs being captured right now
+  const tries = new Map<string, number>(); // capped so a failing page cannot burn credits
+  let bucket: Promise<void> | null = null;
+  let active = 0;
+  const queue: string[] = [];
+  const pump = () => {
+    while (active < 2 && queue.length) { // context.dev free plan: 2 concurrent requests
+      const url = queue.shift()!;
+      active++;
+      (async () => {
+        try {
+          bucket ??= ensureBucket();
+          await bucket;
+          const p = await scrapePage(url, { screenshot: true, maxAgeMs: 6 * 60 * 60 * 1000 });
+          if (!p.screenshot) return;
+          const { data: rows } = await sb.from("receipts").select("id").eq("run_id", runId).eq("source_url", url).is("screenshot_url", null);
+          for (const r of rows ?? []) {
+            const shot = await storeScreenshot(runId, r.id, p.screenshot);
+            if (shot) await sb.from("receipts").update({ screenshot_url: shot, fetched_at: p.fetchedAt }).eq("id", r.id);
+          }
+        } catch {
+          // best effort; the Verifier captures it at the end
+        } finally {
+          active--;
+          started.delete(url); // a later receipt on the same page gets its own pass
+          pump();
+        }
+      })();
+    }
+  };
+  return async () => {
+    const { data } = await sb.from("receipts").select("source_url").eq("run_id", runId).is("screenshot_url", null);
+    for (const u of new Set((data ?? []).map((r) => r.source_url as string))) {
+      const n = tries.get(u) ?? 0;
+      if (!started.has(u) && n < 3) { started.add(u); tries.set(u, n + 1); queue.push(u); }
+    }
+    pump();
+  };
+}
+
 export async function watchRun(runId: string, maxMs = 280_000): Promise<void> {
   const sb = supabaseAdmin();
   const end = Date.now() + maxMs;
+  const captureNew = screenshotter(runId);
   while (Date.now() < end) {
-    await new Promise((r) => setTimeout(r, 3000));
+    await new Promise((r) => setTimeout(r, 2000));
+    await captureNew().catch(() => {});
     const { data } = await sb.from("runs").select("status").eq("id", runId).single();
     const status = data?.status;
     if (status === "agent_done") {

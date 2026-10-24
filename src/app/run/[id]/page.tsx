@@ -61,7 +61,7 @@ export default function Run() {
     fetched: new Date(r.fetched_at).toLocaleString(undefined, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }),
     screenshot: r.screenshot_url,
   }));
-  const verifiedFor = (i: number): boolean | null => (receipts[i].screenshot_url || complete || has("verifier", "done") ? true : null);
+  const verifiedFor = (i: number): boolean | null => (complete || has("verifier", "done") ? !!receipts[i].verified : null);
 
   const verifiedByLabel = useMemo(() => new Map(receipts.map((r, i) => [`R${i + 1}`, r.verified])), [receipts]);
 
@@ -133,7 +133,12 @@ export default function Run() {
       </div>
     );
 
-  const title = deal?.vendor ? `${deal.vendor}${deal.product ? ` · ${deal.product}` : ""}` : "Reading your email";
+  // "Slack Pro", not "Slack · Slack Pro": skip the vendor when the product name already starts with it.
+  const title = deal?.vendor
+    ? deal.product
+      ? deal.product.toLowerCase().startsWith(deal.vendor.toLowerCase()) ? deal.product : `${deal.vendor} · ${deal.product}`
+      : deal.vendor
+    : "Reading your email";
 
   return (
     <div className="flex justify-center px-5 pb-24 pt-10 sm:px-8">
