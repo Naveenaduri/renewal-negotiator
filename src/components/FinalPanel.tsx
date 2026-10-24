@@ -7,6 +7,74 @@ import type { Deal, Judge, Offer, RunRow, Step } from "@/hooks/useRun";
 import { ensureSession } from "@/lib/supabase";
 
 const money = (n: number) => "$" + Math.round(n).toLocaleString("en-US");
+// The judge's estimates, shown as whole percents. Never shown as certain (capped at 5-95%); hidden if missing.
+const chance = (v: unknown): number | null => {
+  const n = Math.round(Number(v));
+  return Number.isFinite(n) && n > 0 && n <= 100 ? Math.min(95, Math.max(5, n)) : null;
+};
+
+function Chance(props: { value: number; tone: "buyer" | "vendor"; label: string; word: string }) {
+  const { value, tone, label, word } = props;
+  return (
+    <div className="mt-2 flex items-center gap-3" aria-label={`${label}: ${value}%`}>
+      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-line">
+        <motion.div className={`h-full rounded-full ${tone === "buyer" ? "bg-buyer" : "bg-vendor"}`} initial={{ width: 0 }} animate={{ width: `${value}%` }} transition={{ duration: 1, ease: [0.2, 0.8, 0.2, 1] }} />
+      </div>
+      <span className={`disp whitespace-nowrap text-xl font-bold ${tone === "buyer" ? "text-buyer" : "text-vendor"}`}>{value}% <span className="text-sm font-semibold">{word}</span></span>
+    </div>
+  );
+}
+
+// Before vs after, from the verified saving only (the verifier zeroes it when no price claim checks out).
+function Saving(props: { deal: Deal | null; judge: Judge | null }) {
+  const was = Number(props.deal?.price ?? 0);
+  const saving = Number(props.deal?.est_saving ?? 0);
+  const basis = props.judge?.saving_basis;
+  if (saving > 0 && was > saving) {
+    const after = was - saving;
+    return (
+      <div className="rounded-2xl border border-buyer/40 bg-buyer/10 p-4 sm:p-5">
+        <div className="mono text-[11px] tracking-[0.1em] text-buyer">ANTICIPATED SAVING · FROM VERIFIED PRICES</div>
+        <div className="mt-3 flex flex-wrap items-end gap-x-5 gap-y-3">
+          <div className="flex flex-col">
+            <span className="mono text-[11px] text-dim">BEFORE</span>
+            <span className="disp text-xl text-muted line-through">{money(was)}/yr</span>
+          </div>
+          <span className="pb-1 text-vendor" aria-hidden>→</span>
+          <div className="flex flex-col">
+            <span className="mono text-[11px] text-dim">AFTER</span>
+            <span className="disp text-xl font-bold text-fg">{money(after)}/yr</span>
+          </div>
+          <div className="flex flex-col sm:ml-auto sm:items-end">
+            <span className="mono text-[11px] text-dim">YOU SAVE</span>
+            <span className="disp text-3xl font-bold leading-none text-buyer">
+              <CountUp to={saving} prefix="$" /> <span className="text-base font-semibold">/yr · {Math.round((saving / was) * 100)}%</span>
+            </span>
+          </div>
+        </div>
+        {basis && <div className="mono mt-3 text-xs leading-relaxed text-muted">How: {basis}</div>}
+      </div>
+    );
+  }
+  if (saving > 0) {
+    return (
+      <div className="rounded-2xl border border-buyer/40 bg-buyer/10 p-4 text-sm">
+        <span className="mono text-[11px] tracking-[0.1em] text-buyer">ANTICIPATED SAVING</span>
+        <div className="disp mt-1 text-2xl font-bold text-buyer">{money(saving)}/yr</div>
+        {basis && <div className="mono mt-1 text-xs text-muted">How: {basis}</div>}
+      </div>
+    );
+  }
+  if (was > 0) {
+    return (
+      <div className="rounded-2xl border border-line p-4 text-sm leading-relaxed text-muted">
+        <span className="mono text-[11px] tracking-[0.1em] text-dim">ANTICIPATED SAVING</span>
+        <div className="mt-1">No verified pricing found, so there is no saving estimate. The email negotiates on billing period, seats and term instead. Today you pay {money(was)}/yr.</div>
+      </div>
+    );
+  }
+  return null;
+}
 
 function Sparks() {
   // A short burst when the deal lands.
@@ -30,8 +98,10 @@ function Sparks() {
 }
 
 // The editable email and the Send button. Re-mounted (via key) for each new draft, so it starts from the right text.
-function Draft(props: { vendorEmail: string; id: string; counter: boolean; judge: Judge | null; offer: Offer | null; sentTo: { to: string } | null; reload: () => Promise<void> }) {
-  const { id, counter, judge, offer, sentTo, reload, vendorEmail } = props;
+function Draft(props: { vendorEmail: string; id: string; counter: boolean; deal: Deal | null; judge: Judge | null; offer: Offer | null; sentTo: { to: string } | null; reload: () => Promise<void> }) {
+  const { id, counter, deal, judge, offer, sentTo, reload, vendorEmail } = props;
+  const outcomeChance = chance(judge?.outcome_chance);
+  const counterChance = chance(judge?.counter_chance);
   const [body, setBody] = useState((counter ? offer?.suggested_reply : judge?.email) ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,6 +134,7 @@ function Draft(props: { vendorEmail: string; id: string; counter: boolean; judge
         <span className="disp text-2xl font-bold">{counter ? "The vendor replied. Your move." : "Your email to the vendor"}</span>
         {counter && offer?.kind && <span className="mono rounded-full border border-vendor/50 px-3 py-1 text-[11px] text-vendor">{offer.kind.toUpperCase()}</span>}
       </div>
+      {!counter && <Saving deal={deal} judge={judge} />}
       {counter && (
         <div className="rounded-2xl border border-vendor/30 bg-vendor/10 p-4 text-[15px] leading-relaxed">
           <div className="mono text-[11px] tracking-[0.1em] text-vendor">WHAT THEY SAID</div>
@@ -78,8 +149,9 @@ function Draft(props: { vendorEmail: string; id: string; counter: boolean; judge
       </div>
       {!counter && (judge?.counter || judge?.outcome) && (
         <div className="grid gap-3 sm:grid-cols-2">
-          {judge?.outcome && <div className="rounded-2xl border border-line p-4 text-sm leading-relaxed text-muted"><div className="mono mb-1 text-[11px] tracking-[0.1em] text-dim">LIKELY OUTCOME</div>{judge.outcome}</div>}
-          {judge?.counter && <div className="rounded-2xl border border-vendor/30 bg-vendor/10 p-4 text-sm leading-relaxed"><div className="mono mb-1 text-[11px] tracking-[0.1em] text-vendor">COUNTER YOU MAY FACE</div>{judge.counter}{judge.counter_reply && <div className="mt-1.5 text-muted">Prepared reply: {judge.counter_reply}</div>}</div>}
+          {judge?.outcome && <div className="rounded-2xl border border-line p-4 text-sm leading-relaxed text-muted"><div className="mono mb-1 text-[11px] tracking-[0.1em] text-dim">LIKELY OUTCOME</div>{outcomeChance !== null && <Chance value={outcomeChance} tone="buyer" label="Chance of this outcome" word="chance" />}<div className="mt-2">{judge.outcome}</div></div>}
+          {judge?.counter && <div className="rounded-2xl border border-vendor/30 bg-vendor/10 p-4 text-sm leading-relaxed"><div className="mono mb-1 text-[11px] tracking-[0.1em] text-vendor">COUNTER YOU MAY FACE</div>{counterChance !== null && <Chance value={counterChance} tone="vendor" label="Chance you face this counter" word="likely" />}<div className="mt-2">{judge.counter}</div>{judge.counter_reply && <div className="mt-1.5 text-muted">Prepared reply: {judge.counter_reply}</div>}</div>}
+          {(outcomeChance !== null || counterChance !== null) && <div className="mono text-[11px] text-dim sm:col-span-2">Percentages are the judge agent&apos;s estimates from the receipts and the rehearsal, not a guarantee.</div>}
         </div>
       )}
       {error && <div role="alert" className="text-sm text-[#ff8b82]">{error}</div>}
@@ -196,5 +268,5 @@ export default function FinalPanel(props: {
   // ---- DRAFT: first email, or a counter ----
   if (status !== "complete" && status !== "reply_ready") return null;
   const counter = status === "reply_ready";
-  return <Draft vendorEmail={vendorEmail} key={counter ? `reply-${offer?.suggested_reply ?? ""}` : `first-${judge?.email ?? ""}`} id={id} counter={counter} judge={judge} offer={offer} sentTo={sentTo} reload={reload} />;
+  return <Draft vendorEmail={vendorEmail} key={counter ? `reply-${offer?.suggested_reply ?? ""}` : `first-${judge?.email ?? ""}`} id={id} counter={counter} deal={deal} judge={judge} offer={offer} sentTo={sentTo} reload={reload} />;
 }
