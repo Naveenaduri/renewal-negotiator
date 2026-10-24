@@ -55,12 +55,12 @@ function Saving(props: { deal: Deal | null; judge: Judge | null }) {
             </span>
           </div>
         </div>
-        {targetChance !== null && <Chance value={targetChance} tone="buyer" label="Chance the vendor accepts the ask" word="chance" />}
+        {targetChance !== null && <div><div className="mono text-[11px] text-dim">STRETCH GOAL: CHANCE THEY ACCEPT THE FULL ASK</div><Chance value={targetChance} tone="buyer" label="Chance the vendor accepts the ask" word="chance" /></div>}
         {props.judge?.target_basis && <div className="mono text-xs leading-relaxed text-muted">How: {props.judge.target_basis}</div>}
         {saving > 0 && (
           <div className="rounded-xl border border-line bg-ink/50 p-3 text-sm">
             <span className="mono text-[11px] tracking-[0.1em] text-dim">GUARANTEED FALLBACK · VERIFIED PUBLISHED PRICE</span>
-            <div className="mt-1 text-fg">{money(floor)}/yr, saving <span className="font-semibold text-buyer">{money(saving)}/yr</span> ({Math.round((saving / was) * 100)}%) even if they say no.</div>
+            <div className="mt-1 text-fg">{money(floor)}/yr, saving <span className="font-semibold text-buyer">{money(saving)}/yr</span> ({Math.round((saving / was) * 100)}%) even if they say no. You can switch to it yourself.</div>
             {basis && <div className="mono mt-1 text-xs text-muted">How: {basis}</div>}
           </div>
         )}
